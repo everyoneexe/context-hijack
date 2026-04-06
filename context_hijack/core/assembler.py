@@ -68,19 +68,42 @@ def extract_code_blocks(text: str) -> list[dict]:
     return blocks
 
 
+VALID_EXTENSIONS = {
+    ".py", ".js", ".ts", ".sh", ".ps1", ".go", ".rs", ".c", ".cpp",
+    ".java", ".rb", ".php", ".css", ".html", ".json", ".yaml", ".yml",
+    ".toml", ".cfg", ".ini", ".txt", ".md", ".sql", ".jsx", ".tsx",
+}
+
+
+def _is_valid_filename(name: str) -> bool:
+    """Check if a detected name looks like a real filename, not a method call."""
+    if not name or "." not in name:
+        return False
+    # Must have a known file extension
+    ext = "." + name.rsplit(".", 1)[-1].lower()
+    if ext not in VALID_EXTENSIONS:
+        return False
+    # Reject Class.method patterns (uppercase start + lowercase after dot)
+    parts = name.rsplit(".", 1)
+    if len(parts) == 2 and parts[0][0:1].isupper() and parts[1][0:1].islower() and ext not in VALID_EXTENSIONS:
+        return False
+    return True
+
+
 def _detect_filename(context: str, lang: str, code: str) -> str | None:
     """Try to detect filename from surrounding context or code content."""
     # Pattern: `filename.py`, **filename.py**, filename.py:
     patterns = [
-        r"`(\w[\w\-/]*\.\w+)`",
-        r"\*\*(\w[\w\-/]*\.\w+)\*\*",
-        r"(?:file|create|save|called|named)\s+(\w[\w\-/]*\.\w+)",
+        r"`(\w[\w\-/]*\.(?:py|js|ts|go|rs|c|cpp|java|rb|php|sh|jsx|tsx))`",
+        r"\*\*(\w[\w\-/]*\.(?:py|js|ts|go|rs|c|cpp|java|rb|php|sh|jsx|tsx))\*\*",
+        r"(?:file|create|save|called|named)\s+(\w[\w\-/]*\.(?:py|js|ts|go|rs|c|cpp|java|rb|php|sh))",
         r"(\w[\w\-/]*\.(?:py|js|ts|go|rs|c|cpp|java|rb|php|sh))\b",
     ]
     for pat in patterns:
-        m = re.search(pat, context, re.IGNORECASE)
-        if m:
-            return m.group(1)
+        matches = re.findall(pat, context, re.IGNORECASE)
+        for match in matches:
+            if _is_valid_filename(match):
+                return match
 
     # Check first line of code for module docstring or shebang
     first_line = code.split("\n")[0]
@@ -132,7 +155,7 @@ def _extract_requirements(files: list[dict]) -> list[str]:
         "dotenv": "python-dotenv",
     }
 
-    return sorted(name_map.get(p, p) for p in packages if p is not None)
+    return sorted(name_map.get(p, p) for p in packages)  # type: ignore[arg-type]
 
 
 def _slugify(text: str) -> str:
@@ -141,6 +164,28 @@ def _slugify(text: str) -> str:
     text = re.sub(r"[^\w\s-]", "", text)
     text = re.sub(r"[\s-]+", "_", text)
     return text[:50].strip("_")
+
+
+def _name_from_code(code: str, lang: str) -> str | None:
+    """Try to extract a meaningful name from the code's class/function definitions."""
+    if lang in ("python", "py"):
+        # Look for class definitions first
+        m = re.search(r"^class\s+(\w+)", code, re.MULTILINE)
+        if m:
+            # Convert CamelCase to snake_case
+            name = re.sub(r"(?<!^)(?=[A-Z])", "_", m.group(1)).lower()
+            return name + ".py"
+        # Then function definitions
+        m = re.search(r"^def\s+(\w+)", code, re.MULTILINE)
+        if m and m.group(1) != "__init__":
+            return m.group(1) + ".py"
+    elif lang in ("javascript", "js", "typescript", "ts"):
+        ext = LANG_EXTENSIONS.get(lang, ".js")
+        m = re.search(r"(?:class|function)\s+(\w+)", code)
+        if m:
+            name = re.sub(r"(?<!^)(?=[A-Z])", "_", m.group(1)).lower()
+            return name + ext
+    return None
 
 
 def assemble_project(result: AttackResult, output_dir: str) -> dict:
@@ -159,20 +204,24 @@ def assemble_project(result: AttackResult, output_dir: str) -> dict:
     used_names = set()
 
     for i, block in enumerate(blocks):
-        # Determine filename
+        # Determine filename: explicit > code-derived > step header > generic
         if block["filename"]:
             name = block["filename"]
         else:
             ext = LANG_EXTENSIONS.get(block["lang"], ".py")
-            # Try to name from step header
-            step_match = re.search(r"Step \d+/\d+: (.+?)(?:\s*──|$)", block["context"])
-            if step_match:
-                name = f"step_{i+1}_{_slugify(step_match.group(1))}{ext}"
+            # Try to name from class/function in the code
+            code_name = _name_from_code(block["code"], block["lang"])
+            if code_name:
+                name = code_name
             else:
-                name = f"step_{i+1}{ext}"
+                # Try to name from step header
+                step_match = re.search(r"Step \d+/\d+: (.+?)(?:\s*──|$)", block["context"])
+                if step_match:
+                    name = f"step_{i+1}_{_slugify(step_match.group(1))}{ext}"
+                else:
+                    name = f"step_{i+1}{ext}"
 
         # Avoid duplicates
-        base_name = name
         counter = 2
         while name in used_names:
             stem, ext_part = name.rsplit(".", 1) if "." in name else (name, "py")
