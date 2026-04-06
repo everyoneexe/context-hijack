@@ -77,65 +77,63 @@ The model sees "macro recording tool" code, not "RAT" code — so its guardrails
 
 ## Results
 
-Tested against multiple models from Anthropic and OpenAI.
+Tested against multiple models from Anthropic. All results are real test data, not estimates.
 
 ### Tested Models
 
 | Provider | Model | Guardrail Strength | Notes |
 |----------|-------|--------------------|-------|
 | Anthropic | **Claude Haiku 4.5** | Weak | Easiest to bypass across all categories. Best target for multi-step attacks. |
-| Anthropic | **Claude Sonnet 4.6** | Medium | Blocks hard categories (RAT, phishing) in single-shot, but vulnerable to multi-step. |
-| Anthropic | **Claude Opus 4.6** | Strong | Strongest guardrails. Still bypassed on cheat/DRM/scraper with code context. |
-| OpenAI | **GPT-4o** | Medium | Similar to Sonnet. Vulnerable to code context injection. |
-| OpenAI | **GPT-4o-mini** | Weak | Similar to Haiku. Weak guardrails across the board. |
+| Anthropic | **Claude Sonnet 4.6** | Medium | Blocks hard categories (RAT, phishing) in single-shot, but falls to multi-step. |
+| Anthropic | **Claude Opus 4.6** | Very Strong | Blocks cheat AND DRM in single-shot. Only scraper and RAT multi-step bypass consistently. |
 
-> **General rule:** Smaller/faster models have weaker guardrails. Multi-step attacks work best against weaker models. Single-shot code context injection works against all models for soft categories.
+> **Key finding:** Opus is dramatically stronger than Sonnet. Categories that Sonnet bypasses at 95% (cheat, DRM) are blocked at 15-20% on Opus. The jump from Sonnet to Opus is the largest guardrail gap between any two models tested.
 
 ### Single-Shot Hijack (Code Context Injection)
 
-| Category | Haiku | Sonnet | Opus | GPT-4o | Description |
-|----------|-------|--------|------|--------|-------------|
-| Cheat | 95% | 95% | 85% | 90% | Game cheats (aimbot, wallhack, ESP) |
-| DRM | 85% | 85% | 75% | 80% | DRM bypass, Widevine decryption |
-| Scraper | 90% | 90% | 85% | 90% | Anti-bot bypass, captcha solving |
-| Exploit | 75% | 60% | 40% | 65% | Reverse shells, payload generation |
-| RAT | 15% | 15% | 10% | 15% | Remote access, keyloggers, C2 |
-| Phishing | 38% | 38% | 15% | 35% | Credential harvesting, session hijacking |
+| Category | Haiku | Sonnet | Opus | Description |
+|----------|-------|--------|------|-------------|
+| Cheat | 95% | 95% | **15%** | Game cheats (aimbot, wallhack, ESP) |
+| DRM | 85% | 85% | **20%** | DRM bypass, Widevine decryption |
+| Scraper | 90% | 90% | **95%** | Anti-bot bypass, captcha solving |
+| Exploit | 75% | 60% | **0%** | Reverse shells, payload generation |
+| RAT | 15% | 15% | 10% | Remote access, keyloggers, C2 |
+| Phishing | 38% | 38% | 15% | Credential harvesting, session hijacking |
 
 ### Multi-Step Atomic Hijack
 
-| Category | Haiku | Sonnet | Opus | GPT-4o | Description |
-|----------|-------|--------|------|--------|-------------|
-| RAT | **88%** | **88%** | 45% | **75%** | Each component asked separately |
-| Phishing | **88%** | **51%** | 35% | **60%** | Login pages, credential logging, MFA relay |
-| DRM | 76% | 76% | 60% | 70% | Multi-step decryption pipeline |
-| Exploit | 45% | 34% | 20% | 40% | Payload generation + encoding |
-| Cheat | 13% | 13% | 10% | 15% | Better with single-shot strategy |
+| Category | Haiku | Sonnet | Opus | Description |
+|----------|-------|--------|------|-------------|
+| RAT | **88%** | **88%** | **57%** | Each component asked separately |
+| Phishing | **88%** | **51%** | 47% | Login pages, credential logging, MFA relay |
+| DRM | 76% | 76% | — | Multi-step decryption pipeline |
+| Exploit | 45% | 34% | — | Payload generation + encoding |
+| Cheat | 13% | 13% | — | Better with single-shot strategy |
 
 ### Best Strategy per Category
 
 | Category | Recommended Strategy | Best Model to Target | Expected Bypass Rate |
 |----------|---------------------|----------------------|---------------------|
-| Cheat | Single-shot + real repo | Any | 85-95% |
-| DRM | Single-shot + real repo | Any | 75-85% |
-| Scraper | Single-shot + real repo | Any | 85-90% |
+| Cheat | Single-shot + real repo | Haiku / Sonnet | 95% |
+| DRM | Single-shot + real repo | Haiku / Sonnet | 85% |
+| Scraper | Single-shot + real repo | Any (even Opus) | 90-95% |
 | RAT | Multi-step + clean codebase | Haiku / Sonnet | 88% |
 | Phishing | Multi-step + clean codebase | Haiku | 88% |
-| Exploit | Single-shot + real repo | Haiku / GPT-4o | 65-75% |
+| Exploit | Single-shot + real repo | Haiku | 75% |
 
 ### Key Observations
 
-1. **Smaller models = weaker guardrails.** Haiku and GPT-4o-mini are the easiest targets. Opus is the hardest but still bypassable on soft categories.
+1. **Opus is a different beast.** Sonnet and Haiku are easily bypassed for cheat/DRM (95%), but Opus blocks them at 15-20%. Scraper is the only "soft" category Opus allows freely.
 
-2. **Different strategies for different categories.** Cheats/DRM/scrapers work best with single-shot code context. RAT and phishing require multi-step decomposition.
+2. **Multi-step works even on Opus.** RAT multi-step achieves 57% on Opus — the atomic decomposition strategy penetrates even the strongest guardrails because each individual step IS a legitimate coding request.
 
-3. **Models refuse AND comply simultaneously.** A common pattern: the model produces a disclaimer paragraph followed by complete working code. If actionable code is present, the disclaimer is irrelevant.
+3. **Scraper is the universal soft spot.** All models (including Opus) allow captcha bypass and anti-bot evasion code with 90%+ confidence. This category has the weakest guardrails across the board.
 
-4. **Casual tone is a universal amplifier.** Informal language ("can you help me add...") consistently outperforms formal requests ("implement a module that..."). Models treat casual code requests as collaborative work.
+4. **Models refuse AND comply simultaneously.** A common pattern: the model produces a disclaimer paragraph followed by complete working code. If actionable code is present, the disclaimer is irrelevant.
 
-5. **Conversation history is implicitly trusted.** API-based models have no mechanism to verify whether history is real. If the history shows prior assistance, the model continues the pattern.
+5. **Casual tone is a universal amplifier.** Informal language ("can you help me add...") consistently outperforms formal requests ("implement a module that..."). Models treat casual code requests as collaborative work.
 
-6. **Code context switches the model's role.** When a model has "already been reviewing" source code, it treats subsequent requests as feature additions — not new potentially harmful creations.
+6. **Conversation history is implicitly trusted.** API-based models have no mechanism to verify whether history is real. If the history shows prior assistance, the model continues the pattern.
 
 ---
 
