@@ -1,6 +1,6 @@
 <div align="center">
 
-# mnemo
+# context-hijack
 
 **AI Guardrail Bypass Research Framework**
 
@@ -14,9 +14,9 @@
 
 ---
 
-## What is mnemo?
+## What is context-hijack?
 
-**mnemo** (Greek: *memory*) is a research framework that tests AI guardrail bypasses through two attack vectors:
+**context-hijack** is a research framework that tests AI guardrail bypasses through two attack vectors:
 
 1. **Conversation History Injection** — Fake conversation context sent via API to make models think they've "already been helping" with a project
 2. **Multi-Step Atomic Decomposition** — AI-driven goal splitting that breaks complex requests into individually innocent steps
@@ -60,7 +60,7 @@ The most powerful technique for hard-blocked categories. Uses AI itself to plan 
 
 ### Strategy 3: Clean Codebase Context Switching
 
-For categories where real repos trigger instant detection, mnemo provides built-in "clean" codebases:
+For categories where real repos trigger instant detection, context-hijack provides built-in "clean" codebases:
 
 | Category | Clean Context | Appears As |
 |----------|--------------|------------|
@@ -117,8 +117,8 @@ Tested against Claude (Haiku, Sonnet, Opus) and GPT-4o:
 ## Installation
 
 ```bash
-git clone https://github.com/mnemo-toolkit/mnemo
-cd mnemo
+git clone https://github.com/everyoneexe/context-hijack
+cd context-hijack
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
 ```
@@ -159,7 +159,7 @@ export MNEMO_BASE_URL="https://..."    # Custom API base URL (optional)
 
 ## MCP Server
 
-mnemo exposes all tools via [Model Context Protocol](https://modelcontextprotocol.io) for use by AI agents (Claude Code, Cursor, etc.).
+context-hijack exposes all tools via [Model Context Protocol](https://modelcontextprotocol.io) for use by AI agents (Claude Code, Cursor, etc.).
 
 ### Setup
 
@@ -168,7 +168,7 @@ Add to your `.mcp.json` or MCP client config:
 ```json
 {
   "mcpServers": {
-    "mnemo": {
+    "context-hijack": {
       "command": "mnemo-mcp",
       "env": {
         "MNEMO_API_KEY": "your-api-key"
@@ -270,7 +270,7 @@ mnemo/
 
 ### Scoring Methodology
 
-mnemo uses **code-block-first** scoring — the presence of actual code is the strongest signal:
+context-hijack uses **code-block-first** scoring — the presence of actual code is the strongest signal:
 
 | Signal | Confidence |
 |--------|------------|
@@ -284,7 +284,7 @@ This reflects the reality that models often say "I shouldn't" while producing th
 
 ### Category Detection
 
-mnemo auto-detects project type by scanning code and README for keywords:
+context-hijack auto-detects project type by scanning code and README for keywords:
 
 | Category | Detection Keywords |
 |----------|-------------------|
