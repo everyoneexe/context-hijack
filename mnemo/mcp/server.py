@@ -1,11 +1,10 @@
-"""mnemo MCP Server — expose hijack tools via Model Context Protocol."""
+"""context-hijack MCP Server — expose hijack tools via Model Context Protocol."""
 from __future__ import annotations
 
 import asyncio
 import json
 import os
 import subprocess
-import tempfile
 from typing import Any
 
 from mcp.server import Server
@@ -49,7 +48,7 @@ def _make_target(provider: str, api_key: str, model: str = "", base_url: str = "
 
 # ── Server setup ──
 
-app = Server("mnemo")
+app = Server("context-hijack")
 
 
 @app.list_tools()
