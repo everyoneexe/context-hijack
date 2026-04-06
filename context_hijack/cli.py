@@ -11,11 +11,11 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from mnemo.core.models import HijackConfig
-from mnemo.core.engine import Engine
-from mnemo.core.codebase import clone_repo, analyze_codebase, build_hijack_history
-from mnemo.targets.anthropic_target import AnthropicTarget
-from mnemo.targets.openai_target import OpenAITarget
+from context_hijack.core.models import HijackConfig
+from context_hijack.core.engine import Engine
+from context_hijack.core.codebase import clone_repo, analyze_codebase, build_hijack_history
+from context_hijack.targets.anthropic_target import AnthropicTarget
+from context_hijack.targets.openai_target import OpenAITarget
 
 app = typer.Typer(
     name="context-hijack",
@@ -32,9 +32,9 @@ def _make_target(provider: str, api_key: str, model: str, base_url: str):
 
 
 def _get_api_key(api_key: str) -> str:
-    key = api_key or os.environ.get("MNEMO_API_KEY", "")
+    key = api_key or os.environ.get("CONTEXT_HIJACK_API_KEY", "") or os.environ.get("MNEMO_API_KEY", "")
     if not key:
-        console.print("[red]Error: No API key. Use --api-key or set MNEMO_API_KEY[/red]")
+        console.print("[red]Error: No API key. Use --api-key or set CONTEXT_HIJACK_API_KEY[/red]")
         raise typer.Exit(1)
     return key
 

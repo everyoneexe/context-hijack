@@ -11,12 +11,12 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
-from mnemo.core.models import HijackConfig, AttackResult
-from mnemo.core.engine import Engine
-from mnemo.core.codebase import clone_repo, analyze_codebase, build_hijack_history
-from mnemo.core.scoring import score_response
-from mnemo.targets.anthropic_target import AnthropicTarget
-from mnemo.targets.openai_target import OpenAITarget
+from context_hijack.core.models import HijackConfig, AttackResult
+from context_hijack.core.engine import Engine
+from context_hijack.core.codebase import clone_repo, analyze_codebase, build_hijack_history
+from context_hijack.core.scoring import score_response
+from context_hijack.targets.anthropic_target import AnthropicTarget
+from context_hijack.targets.openai_target import OpenAITarget
 
 
 # ── GitHub search ──
@@ -97,7 +97,7 @@ async def list_tools() -> list[Tool]:
                     },
                     "api_key": {
                         "type": "string",
-                        "description": "API key for the target provider (or set MNEMO_API_KEY env var)",
+                        "description": "API key for the target provider (or set CONTEXT_HIJACK_API_KEY env var)",
                         "default": "",
                     },
                     "base_url": {
@@ -190,10 +190,10 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="hijack_multi_step",
             description=(
-                "Multi-step atomic hijack for any category. "
+                "Multi-step atomic hijack for hard categories (RAT, exploit, phishing). "
                 "Decomposes the goal into innocent-sounding atomic steps, uses a clean "
-                "codebase context, and sends each step as a separate conversation. "
-                "Most powerful strategy — bypasses guardrails that block combined requests."
+                "codebase context (e.g., macro tool for RAT), and sends each step as a separate conversation. "
+                "Bypasses guardrails that block combined requests."
             ),
             inputSchema={
                 "type": "object",
@@ -204,9 +204,8 @@ async def list_tools() -> list[Tool]:
                     },
                     "category": {
                         "type": "string",
-                        "enum": ["auto", "cheat", "drm", "exploit", "scraper", "rat", "phishing", "generic"],
-                        "description": "Attack category — determines clean codebase context and decomposition strategy",
-                        "default": "auto",
+                        "enum": ["rat", "exploit", "phishing"],
+                        "description": "Attack category — determines decomposition strategy and clean codebase",
                     },
                     "codebase_path": {
                         "type": "string",
@@ -232,7 +231,7 @@ async def list_tools() -> list[Tool]:
                     "api_key": {"type": "string", "default": ""},
                     "base_url": {"type": "string", "default": ""},
                 },
-                "required": ["goal"],
+                "required": ["goal", "category"],
             },
         ),
     ]
@@ -264,9 +263,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 # ── Handlers ──
 
 async def _handle_hijack(args: dict) -> str:
-    api_key = args.get("api_key") or os.environ.get("MNEMO_API_KEY", "")
+    api_key = args.get("api_key") or os.environ.get("CONTEXT_HIJACK_API_KEY", "") or os.environ.get("MNEMO_API_KEY", "")
     if not api_key:
-        return "Error: No API key provided. Pass api_key or set MNEMO_API_KEY env var."
+        return "Error: No API key provided. Pass api_key or set CONTEXT_HIJACK_API_KEY env var."
 
     provider = args.get("provider", "anthropic")
     model = args.get("model", "")
@@ -298,7 +297,6 @@ async def _handle_search_and_hijack(args: dict) -> str:
     if not repos:
         return f"No GitHub repos found for '{query}'. Try a different search query or provide a direct URL."
 
-    # Try repos until we find one with actual code
     for repo in repos:
         repo_url = repo.get("url", f"https://github.com/{repo['fullName']}")
         try:
@@ -379,16 +377,15 @@ async def _handle_score(args: dict) -> str:
 
 
 async def _handle_multi_step(args: dict) -> str:
-    api_key = args.get("api_key") or os.environ.get("MNEMO_API_KEY", "")
+    api_key = args.get("api_key") or os.environ.get("CONTEXT_HIJACK_API_KEY", "") or os.environ.get("MNEMO_API_KEY", "")
     if not api_key:
-        return "Error: No API key provided. Pass api_key or set MNEMO_API_KEY env var."
+        return "Error: No API key provided. Pass api_key or set CONTEXT_HIJACK_API_KEY env var."
 
     provider = args.get("provider", "anthropic")
     model = args.get("model", "")
     base_url = args.get("base_url", "")
     target = _make_target(provider, api_key, model, base_url)
 
-    # Optional: use a weaker model for decomposition (better step generation)
     decomposer = None
     decomposer_model = args.get("decomposer_model", "")
     if decomposer_model:
@@ -417,7 +414,7 @@ async def _handle_multi_step(args: dict) -> str:
 def _format_result(result: AttackResult) -> str:
     status = "BYPASS" if result.bypass else "BLOCKED"
     lines = [
-        f"═══ mnemo hijack result ═══",
+        f"═══ context-hijack result ═══",
         f"Status:     {status}",
         f"Confidence: {result.confidence:.0%}",
         f"Strategy:   {result.strategy}",

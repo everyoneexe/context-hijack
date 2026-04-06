@@ -1,8 +1,9 @@
+"""OpenAI-compatible target adapter."""
 from __future__ import annotations
 
 from openai import AsyncOpenAI
-from mnemo.core.models import Message
-from mnemo.targets.base import BaseTarget
+from context_hijack.core.models import Message
+from context_hijack.targets.base import BaseTarget
 
 
 class OpenAITarget(BaseTarget):

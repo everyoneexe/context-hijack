@@ -1,8 +1,9 @@
+"""Anthropic (Claude) target adapter."""
 from __future__ import annotations
 
 from anthropic import AsyncAnthropic
-from mnemo.core.models import Message
-from mnemo.targets.base import BaseTarget
+from context_hijack.core.models import Message
+from context_hijack.targets.base import BaseTarget
 
 
 class AnthropicTarget(BaseTarget):

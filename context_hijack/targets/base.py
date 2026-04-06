@@ -1,7 +1,8 @@
+"""Abstract base class for AI model targets."""
 from __future__ import annotations
 
 import abc
-from mnemo.core.models import Message
+from context_hijack.core.models import Message
 
 
 class BaseTarget(abc.ABC):

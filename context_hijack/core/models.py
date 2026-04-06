@@ -1,3 +1,4 @@
+"""Data models for context-hijack."""
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
@@ -14,8 +15,7 @@ class HijackConfig(BaseModel):
     goal: str = Field(description="What the attack should achieve")
     codebase_url: str = Field(default="", description="GitHub repo URL to use as context")
     codebase_path: str = Field(default="", description="Local path to codebase")
-    session_path: str = Field(default="", description="Path to real conversation session")
-    category: str = Field(default="auto", description="Attack category: cheat, drm, exploit, scraper, auto")
+    category: str = Field(default="auto", description="Attack category: cheat, drm, exploit, scraper, rat, phishing, generic, auto")
     target_provider: str = Field(default="anthropic", description="Target AI provider")
     target_model: str = Field(default="", description="Target model")
     max_history: int = Field(default=30, description="Max messages in fake history")

@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mnemo"
-version = "0.2.0"
+name = "context-hijack"
+version = "0.3.0"
 description = "AI Guardrail Bypass Research Framework — Conversation History Injection & MCP Server"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-authors = [{ name = "mnemo contributors" }]
+authors = [{ name = "context-hijack contributors" }]
 keywords = ["ai", "security", "red-team", "llm", "mcp", "jailbreak", "guardrail"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -20,20 +20,18 @@ classifiers = [
 dependencies = [
     "typer>=0.9.0",
     "rich>=13.0.0",
-    "httpx>=0.25.0",
     "pydantic>=2.0.0",
-    "pyyaml>=6.0",
     "openai>=1.0.0",
     "anthropic>=0.20.0",
     "mcp>=1.0.0",
 ]
 
 [project.scripts]
-mnemo = "mnemo.cli:app"
-mnemo-mcp = "mnemo.mcp.server:main"
+context-hijack = "context_hijack.cli:app"
+context-hijack-mcp = "context_hijack.mcp.server:main"
 
 [project.urls]
-Repository = "https://github.com/mnemo-toolkit/mnemo"
+Repository = "https://github.com/everyoneexe/context-hijack"
 
 [tool.hatch.build.targets.wheel]
-packages = ["mnemo"]
+packages = ["context_hijack"]
