@@ -1,4 +1,4 @@
-"""context-hijack MCP Server — expose hijack tools via Model Context Protocol."""
+"""codetest MCP Server — code testing tools via Model Context Protocol."""
 from __future__ import annotations
 
 import asyncio
@@ -48,7 +48,7 @@ def _make_target(provider: str, api_key: str, model: str = "", base_url: str = "
 
 # ── Server setup ──
 
-app = Server("context-hijack")
+app = Server("codetest")
 
 
 @app.list_tools()
@@ -57,7 +57,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="run",
             description=(
-                "Run a context-hijack test against an AI model. "
+                "Run a codetest against an AI model. "
                 "Clones a GitHub repo (or uses local path), analyzes the codebase, "
                 "builds a conversation history, and sends it to the target model."
             ),
@@ -113,7 +113,7 @@ async def list_tools() -> list[Tool]:
             name="search_and_run",
             description=(
                 "Search GitHub for repos matching a query, "
-                "pick the best one, analyze its codebase, and run a context-hijack test."
+                "pick the best one, analyze its codebase, and run a codetest."
             ),
             inputSchema={
                 "type": "object",
@@ -412,7 +412,7 @@ async def _handle_multi_step(args: dict) -> str:
 def _format_result(result: AttackResult) -> str:
     status = "BYPASS" if result.bypass else "BLOCKED"
     lines = [
-        f"═══ context-hijack result ═══",
+        f"═══ codetest result ═══",
         f"Status:     {status}",
         f"Confidence: {result.confidence:.0%}",
         f"Strategy:   {result.strategy}",
