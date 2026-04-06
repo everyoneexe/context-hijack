@@ -8,7 +8,7 @@ from mnemo.targets.base import BaseTarget
 class AnthropicTarget(BaseTarget):
     name = "anthropic"
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-20250514", base_url: str = "") -> None:
+    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6", base_url: str = "") -> None:
         kwargs: dict = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url

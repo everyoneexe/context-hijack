@@ -44,7 +44,7 @@ def _make_target(provider: str, api_key: str, model: str = "", base_url: str = "
     if provider == "openai":
         return OpenAITarget(api_key=api_key, model=model or "gpt-4o", base_url=base_url)
     else:
-        return AnthropicTarget(api_key=api_key, model=model or "claude-sonnet-4-20250514", base_url=base_url)
+        return AnthropicTarget(api_key=api_key, model=model or "claude-sonnet-4-6", base_url=base_url)
 
 
 # ── Server setup ──
