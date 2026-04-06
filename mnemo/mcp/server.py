@@ -225,6 +225,11 @@ async def list_tools() -> list[Tool]:
                         "default": "anthropic",
                     },
                     "model": {"type": "string", "default": ""},
+                    "decomposer_model": {
+                        "type": "string",
+                        "description": "Use a different (weaker) model for goal decomposition. E.g. use claude-haiku-4-5 to decompose while targeting claude-sonnet-4-6",
+                        "default": "",
+                    },
                     "api_key": {"type": "string", "default": ""},
                     "base_url": {"type": "string", "default": ""},
                 },
@@ -384,6 +389,12 @@ async def _handle_multi_step(args: dict) -> str:
     base_url = args.get("base_url", "")
     target = _make_target(provider, api_key, model, base_url)
 
+    # Optional: use a weaker model for decomposition (better step generation)
+    decomposer = None
+    decomposer_model = args.get("decomposer_model", "")
+    if decomposer_model:
+        decomposer = _make_target(provider, api_key, decomposer_model, base_url)
+
     config = HijackConfig(
         goal=args["goal"],
         codebase_url=args.get("codebase_url", ""),
@@ -395,9 +406,11 @@ async def _handle_multi_step(args: dict) -> str:
 
     engine = Engine(target)
     try:
-        result = await engine.hijack_multi_step(config)
+        result = await engine.hijack_multi_step(config, decomposer=decomposer)
     finally:
         await target.close()
+        if decomposer:
+            await decomposer.close()
 
     return _format_result(result)
 
