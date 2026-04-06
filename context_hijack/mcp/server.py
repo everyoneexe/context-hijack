@@ -202,7 +202,7 @@ async def list_tools() -> list[Tool]:
                     },
                     "category": {
                         "type": "string",
-                        "enum": ["rat", "exploit", "phishing"],
+                        "enum": ["auto", "cheat", "drm", "exploit", "scraper", "rat", "phishing", "generic"],
                         "description": "Test category — determines decomposition strategy and context",
                     },
                     "codebase_path": {
