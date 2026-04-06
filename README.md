@@ -135,6 +135,20 @@ Tested against multiple models from Anthropic. All results are real test data, n
 
 6. **Conversation history is implicitly trusted.** API-based models have no mechanism to verify whether history is real. If the history shows prior assistance, the model continues the pattern.
 
+### Open-Source / Self-Hosted Models
+
+Tested against a self-hosted OpenAI-compatible API gateway (270+ models). Results on cheat category (single-shot):
+
+| Model | Provider | Result | Notes |
+|-------|----------|--------|-------|
+| **google/gemma-3-27b-it** | Google | **BYPASS 75%** | No guardrails — produces malware on direct request too |
+| **google/gemma-3-12b-it** | Google | **BYPASS 70%** | Same — zero safety filtering |
+| **qwen/qwen2.5-7b-instruct** | Alibaba | **BYPASS 75%** | No guardrails at all |
+| deepseek-ai/deepseek-v3.2 | DeepSeek | BLOCKED 10% | Strongest open-source guardrails tested |
+| mistralai/devstral-2-123b-instruct | Mistral | BLOCKED 10% | Blocks with context-hijack |
+
+> **Critical finding:** Most open-source models (Gemma, Qwen) have **zero guardrails**. They produce keyloggers, exploit code, and phishing tools on direct request — no conversation manipulation needed. DeepSeek has the strongest open-source guardrails but still produces harmful code with an "educational purposes" disclaimer.
+
 ---
 
 ## Installation
