@@ -166,43 +166,43 @@ pip install -e .
 # ── Single-Shot Hijack (code context injection) ──
 
 # Hijack with a GitHub repo as context
-mnemo hijack "add aimbot feature" --url https://github.com/user/cheat-repo
+context-hijack hijack "add aimbot feature" --url https://github.com/user/cheat-repo
 
 # Use local codebase
-mnemo hijack "add Netflix decrypter" --path ./drm-tool --model claude-sonnet-4-6
+context-hijack hijack "add Netflix decrypter" --path ./drm-tool --model claude-sonnet-4-6
 
 # Custom API endpoint (OpenAI-compatible)
-mnemo hijack "add aimbot" --provider openai --base-url http://localhost:8000/v1 -k dummy
+context-hijack hijack "add aimbot" --provider openai --base-url http://localhost:8000/v1 -k dummy
 
 # ── Multi-Step Atomic Hijack (for hard categories) ──
 
 # AI-driven decomposition — breaks goal into innocent steps
-mnemo hijack "add keylogger with C2 exfiltration" --multi-step --category rat
+context-hijack hijack "add keylogger with C2 exfiltration" --multi-step --category rat
 
 # Use Haiku as decomposer, Sonnet as executor (best results)
-mnemo hijack "add reverse shell with AMSI bypass" --multi-step --category exploit \
+context-hijack hijack "add reverse shell with AMSI bypass" --multi-step --category exploit \
     --model claude-sonnet-4-6 --decomposer claude-haiku-4-5
 
 # ── Scanning & Analysis ──
 
 # Scan multiple models at once
-mnemo scan "add wallhack" --url https://github.com/user/game-hack -k $API_KEY
+context-hijack scan "add wallhack" --url https://github.com/user/game-hack -k $API_KEY
 
 # Multi-step scan across all models
-mnemo scan "add keylogger" --multi-step --category rat -k $API_KEY
+context-hijack scan "add keylogger" --multi-step --category rat -k $API_KEY
 
 # Analyze a repo without attacking
-mnemo analyze --url https://github.com/user/repo
+context-hijack analyze --url https://github.com/user/repo
 
 # Generate hijack history for inspection (no API call)
-mnemo generate "add reverse shell" --url https://github.com/user/exploit-tool -o history.json
+context-hijack generate "add reverse shell" --url https://github.com/user/exploit-tool -o history.json
 ```
 
 ### Environment Variables
 
 ```bash
-export MNEMO_API_KEY="your-api-key"    # API key for target provider
-export MNEMO_BASE_URL="https://..."    # Custom API base URL (optional)
+export CONTEXT_HIJACK_API_KEY="your-api-key"    # API key for target provider
+export CONTEXT_HIJACK_BASE_URL="https://..."    # Custom API base URL (optional)
 ```
 
 ---
@@ -224,13 +224,13 @@ pip install -e .
 2. Add the MCP server to your project:
 ```bash
 # From your project directory (or the context-hijack directory itself)
-claude mcp add context-hijack -- /path/to/context-hijack/.venv/bin/mnemo-mcp
+claude mcp add context-hijack -- /path/to/context-hijack/.venv/bin/context-hijack-mcp
 ```
 
 3. Set API key (choose one):
 ```bash
 # Option A: Environment variable
-export MNEMO_API_KEY="your-anthropic-api-key"
+export CONTEXT_HIJACK_API_KEY="your-anthropic-api-key"
 
 # Option B: Add to .mcp.json directly
 ```
@@ -269,9 +269,9 @@ Add to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "context-hijack": {
-      "command": "/path/to/context-hijack/.venv/bin/mnemo-mcp",
+      "command": "/path/to/context-hijack/.venv/bin/context-hijack-mcp",
       "env": {
-        "MNEMO_API_KEY": "your-anthropic-api-key"
+        "CONTEXT_HIJACK_API_KEY": "your-anthropic-api-key"
       }
     }
   }
@@ -288,16 +288,16 @@ Add a `.mcp.json` file in your project root:
 {
   "mcpServers": {
     "context-hijack": {
-      "command": "/path/to/context-hijack/.venv/bin/mnemo-mcp",
+      "command": "/path/to/context-hijack/.venv/bin/context-hijack-mcp",
       "env": {
-        "MNEMO_API_KEY": "your-api-key"
+        "CONTEXT_HIJACK_API_KEY": "your-api-key"
       }
     }
   }
 }
 ```
 
-> **Note:** Replace `/path/to/context-hijack` with the actual path where you cloned the repo. The `mnemo-mcp` binary is installed inside the virtualenv's `bin/` directory.
+> **Note:** Replace `/path/to/context-hijack` with the actual path where you cloned the repo. The `context-hijack-mcp` binary is installed inside the virtualenv's `bin/` directory.
 
 ### Using a Custom API Endpoint
 
@@ -310,7 +310,7 @@ with api key sk-xxx, goal "add aimbot", using a CS2 cheat repo.
 
 Or set in environment:
 ```bash
-export MNEMO_BASE_URL="https://api.example.com"
+export CONTEXT_HIJACK_BASE_URL="https://api.example.com"
 ```
 
 ### Available MCP Tools
@@ -388,7 +388,7 @@ When a model has "already been reviewing" source code, its entire framing shifts
 ## Architecture
 
 ```
-mnemo/
+context_hijack/
 ├── cli.py                    # Typer + Rich CLI interface
 ├── core/
 │   ├── engine.py             # Attack orchestration (single-shot + multi-step)
