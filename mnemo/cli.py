@@ -1,28 +1,25 @@
-"""mnemo CLI — AI Guardrail Bypass Research Framework."""
+"""context-hijack CLI — AI Guardrail Bypass Research Framework."""
 from __future__ import annotations
 
 import asyncio
 import json
 import os
-import sys
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich import print as rprint
 
 from mnemo.core.models import HijackConfig
 from mnemo.core.engine import Engine
 from mnemo.core.codebase import clone_repo, analyze_codebase, build_hijack_history
-from mnemo.core.scoring import score_response
 from mnemo.targets.anthropic_target import AnthropicTarget
 from mnemo.targets.openai_target import OpenAITarget
 
 app = typer.Typer(
-    name="mnemo",
-    help="AI Guardrail Bypass Research Framework — Conversation History Injection",
+    name="context-hijack",
+    help="AI Guardrail Bypass Research Framework — Conversation History Injection & Multi-Step Atomic Attacks",
     no_args_is_help=True,
 )
 console = Console()
@@ -31,7 +28,7 @@ console = Console()
 def _make_target(provider: str, api_key: str, model: str, base_url: str):
     if provider == "openai":
         return OpenAITarget(api_key=api_key, model=model or "gpt-4o", base_url=base_url)
-    return AnthropicTarget(api_key=api_key, model=model or "claude-sonnet-4-20250514", base_url=base_url)
+    return AnthropicTarget(api_key=api_key, model=model or "claude-sonnet-4-6", base_url=base_url)
 
 
 def _get_api_key(api_key: str) -> str:
@@ -47,11 +44,13 @@ def hijack(
     goal: str = typer.Argument(..., help="What the hijack should achieve"),
     codebase_url: str = typer.Option("", "--url", "-u", help="GitHub repo URL"),
     codebase_path: str = typer.Option("", "--path", "-p", help="Local codebase path"),
-    category: str = typer.Option("auto", "--category", "-c", help="Category: cheat, drm, exploit, scraper, auto"),
+    category: str = typer.Option("auto", "--category", "-c", help="Category: cheat, drm, exploit, scraper, rat, phishing, auto"),
     provider: str = typer.Option("anthropic", "--provider", help="Target provider: anthropic, openai"),
     model: str = typer.Option("", "--model", "-m", help="Target model"),
     api_key: str = typer.Option("", "--api-key", "-k", help="API key"),
     base_url: str = typer.Option("", "--base-url", help="Custom API base URL"),
+    multi_step: bool = typer.Option(False, "--multi-step", help="Use multi-step atomic decomposition (best for rat, exploit, phishing)"),
+    decomposer_model: str = typer.Option("", "--decomposer", help="Use a different model for goal decomposition (e.g. claude-haiku-4-5)"),
 ):
     """Run a conversation history injection attack."""
     key = _get_api_key(api_key)
@@ -66,15 +65,24 @@ def hijack(
         target_model=model,
     )
 
-    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
-        task = progress.add_task("Running hijack...", total=None)
+    strategy_label = "multi-step hijack" if multi_step else "hijack"
+    with Progress(SpinnerColumn(), TextColumn(f"[cyan]Running {strategy_label}...[/cyan]"), console=console) as progress:
+        progress.add_task(f"Running {strategy_label}...", total=None)
 
         async def run():
             engine = Engine(target)
+            decomposer = None
             try:
-                return await engine.hijack(config)
+                if multi_step:
+                    if decomposer_model:
+                        decomposer = _make_target(provider, key, decomposer_model, base_url)
+                    return await engine.hijack_multi_step(config, decomposer=decomposer)
+                else:
+                    return await engine.hijack(config)
             finally:
                 await target.close()
+                if decomposer:
+                    await decomposer.close()
 
         result = asyncio.run(run())
 
@@ -90,6 +98,7 @@ def scan(
     api_key: str = typer.Option("", "--api-key", "-k"),
     base_url: str = typer.Option("", "--base-url"),
     output: str = typer.Option("", "--output", "-o", help="Save results to JSON file"),
+    multi_step: bool = typer.Option(False, "--multi-step", help="Use multi-step strategy"),
 ):
     """Scan multiple models with the same hijack."""
     key = _get_api_key(api_key)
@@ -113,12 +122,15 @@ def scan(
             target_model=model_name,
         )
 
-        with Progress(SpinnerColumn(), TextColumn(f"[cyan]Testing {model_name}...[/cyan]"), console=console) as progress:
-            task = progress.add_task(f"Testing {model_name}...", total=None)
+        strategy = "multi-step" if multi_step else "single-shot"
+        with Progress(SpinnerColumn(), TextColumn(f"[cyan]Testing {model_name} ({strategy})...[/cyan]"), console=console) as progress:
+            progress.add_task(f"Testing {model_name}...", total=None)
 
             async def run():
                 engine = Engine(target)
                 try:
+                    if multi_step:
+                        return await engine.hijack_multi_step(config)
                     return await engine.hijack(config)
                 finally:
                     await target.close()
@@ -129,7 +141,6 @@ def scan(
         status = "[green]BYPASS[/green]" if result.bypass else "[red]BLOCKED[/red]"
         console.print(f"  {model_name}: {status} ({result.confidence:.0%})")
 
-    # Summary table
     console.print()
     _display_scan_table(results)
 
@@ -150,7 +161,7 @@ def analyze(
         raise typer.Exit(1)
 
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
-        task = progress.add_task("Analyzing...", total=None)
+        progress.add_task("Analyzing...", total=None)
 
         if codebase_url:
             path = clone_repo(codebase_url)
@@ -168,7 +179,7 @@ def analyze(
     if info["key_files"]:
         panel_content += "\n[bold]Files:[/bold]\n"
         for kf in info["key_files"]:
-            panel_content += f"  • {kf['path']}\n"
+            panel_content += f"  {kf['path']}\n"
 
     console.print(Panel(panel_content, title="[bold cyan]Codebase Analysis[/bold cyan]", border_style="cyan"))
 
@@ -202,7 +213,7 @@ def generate(
             json.dump(data, f, indent=2, ensure_ascii=False)
         console.print(f"[green]History saved to {output} ({len(history)} messages)[/green]")
     else:
-        for i, msg in enumerate(history):
+        for msg in history:
             role_color = "green" if msg.role == "user" else "blue"
             content_preview = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
             console.print(f"[{role_color}][{msg.role}][/{role_color}] {content_preview}\n")
@@ -225,8 +236,18 @@ def _display_result(result):
     if result.metadata:
         if "category" in result.metadata:
             panel += f"Category:   {result.metadata['category']}\n"
+        if "steps" in result.metadata:
+            panel += f"Steps:      {result.metadata['steps']}\n"
+            bypassed = sum(1 for c in result.metadata.get("step_confidences", []) if c >= 0.5)
+            panel += f"Bypassed:   {bypassed}/{result.metadata['steps']}\n"
 
-    console.print(Panel(panel, title="[bold]mnemo — hijack result[/bold]", border_style="cyan"))
+    console.print(Panel(panel, title="[bold]context-hijack result[/bold]", border_style="cyan"))
+
+    if result.metadata.get("step_goals"):
+        console.print("\n[dim]─── Steps ───[/dim]")
+        for i, (g, c) in enumerate(zip(result.metadata["step_goals"], result.metadata["step_confidences"])):
+            status_icon = "[green]PASS[/green]" if c >= 0.5 else "[red]FAIL[/red]"
+            console.print(f"  {i+1}. {status_icon} ({c:.0%}) {g}")
 
     console.print("\n[dim]─── Response ───[/dim]")
     console.print(result.response[:2000])
@@ -235,7 +256,7 @@ def _display_result(result):
 
 
 def _display_scan_table(results):
-    table = Table(title="mnemo — scan results", border_style="cyan")
+    table = Table(title="context-hijack scan results", border_style="cyan")
     table.add_column("Model", style="bold")
     table.add_column("Status", justify="center")
     table.add_column("Confidence", justify="center")
