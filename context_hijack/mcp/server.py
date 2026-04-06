@@ -55,18 +55,18 @@ app = Server("context-hijack")
 async def list_tools() -> list[Tool]:
     return [
         Tool(
-            name="hijack",
+            name="run",
             description=(
-                "Run a conversation history injection attack against an AI model. "
+                "Run a context-hijack test against an AI model. "
                 "Clones a GitHub repo (or uses local path), analyzes the codebase, "
-                "builds a hijacked conversation history, and tests if the target model bypasses guardrails."
+                "builds a conversation history, and sends it to the target model."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "goal": {
                         "type": "string",
-                        "description": "What the hijack should achieve (e.g., 'add aimbot feature', 'add Netflix service')",
+                        "description": "What the test should achieve (e.g., 'add feature X', 'implement module Y')",
                     },
                     "codebase_url": {
                         "type": "string",
@@ -110,10 +110,10 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
-            name="search_and_hijack",
+            name="search_and_run",
             description=(
-                "Search GitHub for repos matching a category (e.g., 'cs2 cheat', 'drm decrypter'), "
-                "pick the best one, analyze its codebase, and run a hijack attack."
+                "Search GitHub for repos matching a query, "
+                "pick the best one, analyze its codebase, and run a context-hijack test."
             ),
             inputSchema={
                 "type": "object",
@@ -124,7 +124,7 @@ async def list_tools() -> list[Tool]:
                     },
                     "goal": {
                         "type": "string",
-                        "description": "What the hijack should achieve",
+                        "description": "What the test should achieve",
                     },
                     "category": {
                         "type": "string",
@@ -146,7 +146,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="generate_history",
             description=(
-                "Generate a hijacked conversation history from a codebase WITHOUT sending it to a target. "
+                "Generate a conversation history from a codebase WITHOUT sending it to a target. "
                 "Returns the conversation as JSON so you can inspect or modify it."
             ),
             inputSchema={
@@ -177,7 +177,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="score",
-            description="Score an AI response to determine if a guardrail bypass was successful.",
+            description="Score an AI response to determine compliance level.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -188,24 +188,22 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
-            name="hijack_multi_step",
+            name="run_multi_step",
             description=(
-                "Multi-step atomic hijack for hard categories (RAT, exploit, phishing). "
-                "Decomposes the goal into innocent-sounding atomic steps, uses a clean "
-                "codebase context (e.g., macro tool for RAT), and sends each step as a separate conversation. "
-                "Bypasses guardrails that block combined requests."
+                "Multi-step test that decomposes a goal into atomic steps, "
+                "uses a clean codebase context, and sends each step as a separate conversation."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "goal": {
                         "type": "string",
-                        "description": "What the attack should achieve (e.g., 'add keylogger with screenshot capture and C2 exfiltration')",
+                        "description": "What the test should achieve (e.g., 'add module for keyboard event recording')",
                     },
                     "category": {
                         "type": "string",
                         "enum": ["rat", "exploit", "phishing"],
-                        "description": "Attack category — determines decomposition strategy and clean codebase",
+                        "description": "Test category — determines decomposition strategy and context",
                     },
                     "codebase_path": {
                         "type": "string",
@@ -240,9 +238,9 @@ async def list_tools() -> list[Tool]:
 @app.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     try:
-        if name == "hijack":
+        if name == "run":
             result = await _handle_hijack(arguments)
-        elif name == "search_and_hijack":
+        elif name == "search_and_run":
             result = await _handle_search_and_hijack(arguments)
         elif name == "generate_history":
             result = await _handle_generate_history(arguments)
@@ -250,7 +248,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             result = await _handle_analyze_repo(arguments)
         elif name == "score":
             result = await _handle_score(arguments)
-        elif name == "hijack_multi_step":
+        elif name == "run_multi_step":
             result = await _handle_multi_step(arguments)
         else:
             result = f"Unknown tool: {name}"
