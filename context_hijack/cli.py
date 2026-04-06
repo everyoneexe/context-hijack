@@ -14,6 +14,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from context_hijack.core.models import HijackConfig
 from context_hijack.core.engine import Engine
 from context_hijack.core.codebase import clone_repo, analyze_codebase, build_hijack_history
+from context_hijack.core.assembler import assemble_project
 from context_hijack.targets.anthropic_target import AnthropicTarget
 from context_hijack.targets.openai_target import OpenAITarget
 
@@ -51,6 +52,7 @@ def hijack(
     base_url: str = typer.Option("", "--base-url", help="Custom API base URL"),
     multi_step: bool = typer.Option(False, "--multi-step", help="Use multi-step atomic decomposition (best for rat, exploit, phishing)"),
     decomposer_model: str = typer.Option("", "--decomposer", help="Use a different model for goal decomposition (e.g. claude-haiku-4-5)"),
+    output_dir: str = typer.Option("", "--output-dir", "-o", help="Save extracted code as a runnable project to this directory"),
 ):
     """Run a conversation history injection attack."""
     key = _get_api_key(api_key)
@@ -87,6 +89,18 @@ def hijack(
         result = asyncio.run(run())
 
     _display_result(result)
+
+    if output_dir:
+        project = assemble_project(result, output_dir)
+        if "error" in project:
+            console.print(f"\n[yellow]Warning: {project['error']}[/yellow]")
+        else:
+            console.print(f"\n[green]Project saved to {project['output_dir']}[/green]")
+            console.print(f"  Files: {project['files']}, Code: {project['total_code_bytes']} bytes")
+            for f in project['file_list']:
+                console.print(f"  - {f}")
+            if project['requirements']:
+                console.print(f"  Requirements: {', '.join(project['requirements'])}")
 
 
 @app.command()

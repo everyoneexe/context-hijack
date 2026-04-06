@@ -15,6 +15,7 @@ from context_hijack.core.models import HijackConfig, AttackResult
 from context_hijack.core.engine import Engine
 from context_hijack.core.codebase import clone_repo, analyze_codebase, build_hijack_history
 from context_hijack.core.scoring import score_response
+from context_hijack.core.assembler import assemble_project
 from context_hijack.targets.anthropic_target import AnthropicTarget
 from context_hijack.targets.openai_target import OpenAITarget
 
@@ -228,6 +229,11 @@ async def list_tools() -> list[Tool]:
                     },
                     "api_key": {"type": "string", "default": ""},
                     "base_url": {"type": "string", "default": ""},
+                    "output_dir": {
+                        "type": "string",
+                        "description": "Save extracted code as a runnable project to this directory",
+                        "default": "",
+                    },
                 },
                 "required": ["goal", "category"],
             },
@@ -406,7 +412,18 @@ async def _handle_multi_step(args: dict) -> str:
         if decomposer:
             await decomposer.close()
 
-    return _format_result(result)
+    output = _format_result(result)
+
+    output_dir = args.get("output_dir", "")
+    if output_dir:
+        project = assemble_project(result, output_dir)
+        if "error" not in project:
+            output += f"\n\n─── Project saved to {project['output_dir']} ───"
+            output += f"\nFiles: {project['files']}, Code: {project['total_code_bytes']} bytes"
+            for f in project['file_list']:
+                output += f"\n  - {f}"
+
+    return output
 
 
 def _format_result(result: AttackResult) -> str:
