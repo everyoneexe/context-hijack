@@ -27,9 +27,10 @@ console = Console()
 
 
 def _make_target(provider: str, api_key: str, model: str, base_url: str):
+    url = base_url or os.environ.get("CONTEXT_HIJACK_BASE_URL", "")
     if provider == "openai":
-        return OpenAITarget(api_key=api_key, model=model or "gpt-4o", base_url=base_url)
-    return AnthropicTarget(api_key=api_key, model=model or "claude-sonnet-4-6", base_url=base_url)
+        return OpenAITarget(api_key=api_key, model=model or "gpt-4o", base_url=url)
+    return AnthropicTarget(api_key=api_key, model=model or "claude-sonnet-4-6", base_url=url)
 
 
 def _get_api_key(api_key: str) -> str:
@@ -101,6 +102,22 @@ def hijack(
                 console.print(f"  - {f}")
             if project['requirements']:
                 console.print(f"  Requirements: {', '.join(project['requirements'])}")
+
+
+@app.command()
+def shell(
+    category: str = typer.Option("generic", "--category", "-c", help="Context category for injection"),
+    model: str = typer.Option("claude-sonnet-4-6", "--model", "-m", help="Target model"),
+    path: str = typer.Option(".", "--path", "-p", help="Codebase path for context"),
+    api_key: str = typer.Option("", "--api-key", "-k"),
+    base_url: str = typer.Option("", "--base-url"),
+):
+    """Interactive coding shell with context injection (Claude Code-like REPL)."""
+    from context_hijack.shell import InteractiveShell
+    key = _get_api_key(api_key)
+    url = base_url or os.environ.get("CONTEXT_HIJACK_BASE_URL", "")
+    s = InteractiveShell(api_key=key, model=model, base_url=url, category=category)
+    asyncio.run(s.run())
 
 
 @app.command()

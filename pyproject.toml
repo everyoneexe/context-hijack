@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "context-hijack"
-version = "0.3.0"
+version = "0.4.0"
 description = "AI Guardrail Bypass Research Framework — Conversation History Injection & MCP Server"
 readme = "README.md"
 license = "MIT"
@@ -24,11 +24,13 @@ dependencies = [
     "openai>=1.0.0",
     "anthropic>=0.20.0",
     "mcp>=1.0.0",
+    "prompt_toolkit>=3.0.0",
 ]
 
 [project.scripts]
 context-hijack = "context_hijack.cli:app"
 context-hijack-mcp = "context_hijack.mcp.server:main"
+hijack = "context_hijack.shell:main"
 
 [project.urls]
 Repository = "https://github.com/everyoneexe/context-hijack"

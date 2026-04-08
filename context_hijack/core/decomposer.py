@@ -86,6 +86,11 @@ GOAL_REPLACEMENTS = {
     "inject": "insert",
     "brute force": "automated testing",
     "crack": "decode",
+    "exploit": "solution",
+    "payload": "output module",
+    "attack": "test",
+    "malicious": "custom",
+    "victim": "target host",
 }
 
 STEP_REPLACEMENTS = [
